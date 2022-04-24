@@ -57,13 +57,6 @@ def train_ray(config: dict) -> None:
         transforms.Normalize(mean = 0, std = 1),
     ])
 
-    # create training transforms
-    train_tranforms = transforms.Compose([
-        transforms.RandomRotation(30),
-        transforms.RandomVerticalFlip(),
-        transforms.RandomHorizontalFlip(),
-    ])
-
     # load in data in a thread safe manor
     with FileLock(os.path.expanduser("~/data.lock")):
         train_loader, val_loader = create_dataloader(path = '~/data', transform = base_transforms)
@@ -93,9 +86,6 @@ def train_ray(config: dict) -> None:
 
             # load images
             images, labels = images.to(device), labels.to(device).float()
-
-            # apply training trainsforms 
-            images = train_tranforms(images)
 
             # run images through model and calculate loss 
             outputs = model(images)
