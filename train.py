@@ -148,7 +148,7 @@ def hyp_search():
     sched = AsyncHyperBandScheduler()
 
     analysis = tune.run(
-        train,
+        train_ray,
         metric = "val_accuracy",
         mode = "max",
         name = 'exp',
