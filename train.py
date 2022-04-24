@@ -134,21 +134,9 @@ def train_ray(config: dict) -> None:
 
 from ray.tune import Stopper
 
-class CustomStopper(Stopper):
-    def __init__(self, max_epochs):
-        self.should_stop = False
-        self.max_epochs = max_epochs
-
-    def __call__(self, trial_id, result):
-        if not self.should_stop and result['val_accuracy'] < .6:
-            self.should_stop = True
-        if not self.should_stop and result['epoch'] >= self.max_epochs:
-            self.should_stop = True
-        return self.should_stop
-
-    def stop_all(self):
-        """Returns whether to stop trials and prevent new ones from starting."""
-        return self.should_stop
+def stopper(trail_id, results):
+    if results['epochs'] > 4: return True
+    return results['val_accuracy'] < .6
 
 
 def hyp_search():
@@ -161,7 +149,7 @@ def hyp_search():
         mode = "max",
         name = 'exp',
         scheduler=sched,
-        stop=CustomStopper(4),
+        stop = stopper,
         resources_per_trial={"cpu": 4, "gpu": 1 if torch.cuda.is_available() else 0},  # set this for GPUs
         num_samples = 20,
         config = dict(
