@@ -94,7 +94,7 @@ def train(config: dict) -> None:
         train_loss = 0
         train_correct = 0
         # iter through training batches 
-        for images, labels in tqdm(train_loader):
+        for images, labels in train_loader:
             images, labels = images.to(device), labels.to(device).float()
 
             # apply training trainsforms 
@@ -117,7 +117,7 @@ def train(config: dict) -> None:
             train_correct += (outputs == labels).float().mean()
 
         # average accuracy over each batch
-        train_accuracy = train_correct / len(train_loader).float()
+        train_accuracy = train_correct / len(train_loader)
 
         val_loss = 0
         val_correct = 0
