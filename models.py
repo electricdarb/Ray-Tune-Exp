@@ -60,6 +60,9 @@ class SimpleCNN(nn.Module):
         x = self.out(x)
         x = torch.sigmoid(x)
 
+        # flatten x for loss func
+        x = torch.flatten(x)
+
         return x
 
 
