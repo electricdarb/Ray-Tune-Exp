@@ -16,6 +16,8 @@ import os
 
 import ray
 import ray.tune as tune
+from ray.tune.schedulers import AsyncHyperBandScheduler
+
 
 # create dataloaders
 def create_dataloader(path, transform, split = .1, batch_size = 64):
@@ -70,7 +72,7 @@ def train(config: dict) -> None:
     ])
     # load in data in a thread safe manor
     with FileLock(os.path.expanduser("~/data.lock")):
-        train_loader, val_loader = create_dataloader(path = 'data', transform = base_transforms)
+        train_loader, val_loader = create_dataloader(path = '~/data', transform = base_transforms)
 
     # create model 
     model = SimpleCNN(image_size = image_size, dropout_rate = dropout_rate)
@@ -157,7 +159,7 @@ def hyp_search():
         name = 'exp',
         scheduler=sched,
         stop={
-            "training_iteration": 20
+            "training_iterations": 6
         },
         resources_per_trial={"cpu": 4, "gpu": 1 if torch.cuda.is_available() else 0},  # set this for GPUs
         num_samples = 5,
@@ -166,7 +168,7 @@ def hyp_search():
             lr = tune.loguniform(1e-4, 1.),
             momentum = tune.uniform(0.1, 0.9),
             l2 = tune.loguniform(1e-4, 1e-2),
-            dropout_rate = tune.uniform(.05, .35)
+            dropout_rate = tune.uniform(.05, .35),
             epochs = 100000 # set to high number so iterations is used to stop not this
             )
     )
@@ -174,16 +176,7 @@ def hyp_search():
     print("Best config is:", analysis.best_config)
 
 if __name__ == "__main__":
-    config = dict(
-        image_size = 227 // 2,
-        lr = .01,
-        momentum = .9,
-        l2 = 1e-4,
-        dropout_rate = .2,
-        epochs = 1
-    )
-
-    train(config)
+    hyp_search()
 
 
 
