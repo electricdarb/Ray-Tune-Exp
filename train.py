@@ -75,8 +75,7 @@ def train(config: dict) -> None:
         train_loader, val_loader = create_dataloader(path = '~/data', transform = base_transforms)
 
     # create model 
-    model = SimpleCNN(image_size = image_size, dropout_rate = dropout_rate)
-    model.to(device)
+    model = SimpleCNN(image_size = image_size, dropout_rate = dropout_rate).to(device)
 
     # create loss
     loss_fn = F.binary_cross_entropy
@@ -90,9 +89,9 @@ def train(config: dict) -> None:
 
     # iter through epochs 
     for epoch in range(epochs):
-
         train_loss = 0
         train_correct = 0
+
         # iter through training batches 
         for images, labels in train_loader:
             # reset optimizer
@@ -117,8 +116,9 @@ def train(config: dict) -> None:
             # sum where outputs are equal to correct labels
             train_correct += (torch.round(outputs) == labels).float().mean().item()
 
-        # average accuracy over each batch
+        # average accuracy and loss over each batch
         train_accuracy = train_correct / len(train_loader)
+        train_loss /= len(train_loader)
 
         val_loss = 0
         val_correct = 0
@@ -136,15 +136,16 @@ def train(config: dict) -> None:
 
                 val_correct += (torch.round(outputs) == labels).float().mean().item()
 
-            # avergae accuracy 
+            # avergae accuracy and loss over epoch
             val_accuracy = val_correct / len(val_loader)
+            val_loss /= len(val_loader)
         
         tune.report(
             train_accuracy = train_accuracy,
             train_loss = train_loss,
             val_accuracy = val_accuracy,
             val_loss = val_loss,
-            epochs = epoch,
+            epochs = epoch + 1,
             )
 
 
@@ -165,9 +166,9 @@ def hyp_search():
         num_samples = 5,
         config = dict(
             image_size = 227 // 8,
-            lr = tune.loguniform(1e-4, 1.),
+            lr = tune.loguniform(1e-5, 1e-1),
             momentum = tune.uniform(0.1, 0.9),
-            l2 = tune.loguniform(1e-4, 1e-2),
+            l2 = tune.loguniform(1e-5, 1e-2),
             dropout_rate = tune.uniform(.05, .35),
             epochs = 100000 # set to high number so iterations is used to stop not this
             )
