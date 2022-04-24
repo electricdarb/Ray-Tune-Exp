@@ -1,7 +1,4 @@
-from tkinter import image_names
-from sklearn.utils import shuffle
 import torch 
-from torch import dropout, dropout_, nn
 import torchvision
 from torchvision import transforms, utils, datasets
 from torch.utils.data import Dataset, DataLoader
@@ -9,11 +6,9 @@ from torch.nn import functional as F
 
 from models import SimpleCNN
 
-from tqdm import tqdm
-
 from filelock import FileLock
 import os 
-
+from tqdm import tqdm
 import ray
 import ray.tune as tune
 from ray.tune.schedulers import AsyncHyperBandScheduler
@@ -34,7 +29,7 @@ def create_dataloader(path, transform, split = .1, batch_size = 64):
 
     return train_loader, val_loader
 
-def train(config: dict) -> None:
+def train_ray(config: dict) -> None:
     """create and train a model, config is of structure:
     config = {
         lr:
@@ -55,7 +50,6 @@ def train(config: dict) -> None:
     # define device to use gpu if aviable 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-
     # create base transforms 
     base_transforms = transforms.Compose([
         transforms.ToTensor(),
@@ -68,8 +62,8 @@ def train(config: dict) -> None:
         transforms.RandomRotation(30),
         transforms.RandomVerticalFlip(),
         transforms.RandomHorizontalFlip(),
-        transforms.RandomAffine(0, translate = (.1, .1), scale = (.9, 1.1))
     ])
+
     # load in data in a thread safe manor
     with FileLock(os.path.expanduser("~/data.lock")):
         train_loader, val_loader = create_dataloader(path = '~/data', transform = base_transforms)
@@ -160,12 +154,12 @@ def hyp_search():
         name = 'exp',
         scheduler=sched,
         stop={
-            "epochs": 6
+            "epochs": 4
         },
         resources_per_trial={"cpu": 4, "gpu": 1 if torch.cuda.is_available() else 0},  # set this for GPUs
         num_samples = 5,
         config = dict(
-            image_size = 227 // 8,
+            image_size = 227 // 4,
             lr = tune.loguniform(1e-5, 1e-1),
             momentum = tune.uniform(0.1, 0.9),
             l2 = tune.loguniform(1e-5, 1e-2),
@@ -175,6 +169,106 @@ def hyp_search():
     )
 
     print("Best config is:", analysis.best_config)
+
+def train(image_size, lr, momentum, l2, dropout_rate, epochs):
+    """create and train a model, config is of structure:
+    config = {
+        lr:
+        l2:
+        momentum:
+        dropout_rate:
+        image_size:
+        epochs:
+        """
+
+    # define device to use gpu if aviable 
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+    # create base transforms 
+    base_transforms = transforms.Compose([
+        transforms.ToTensor(),
+        transforms.Resize(image_size),
+        transforms.Normalize(mean = 0, std = 1),
+    ])
+
+    # create training transforms
+    train_tranforms = transforms.Compose([
+        transforms.RandomRotation(30),
+        transforms.RandomVerticalFlip(),
+        transforms.RandomHorizontalFlip(),
+        transforms.RandomAffine(0, translate = (.1, .1), scale = (.9, 1.1))
+    ])
+    # load in data in a thread safe manor
+    with FileLock(os.path.expanduser("~/data.lock")):
+        train_loader, val_loader = create_dataloader(path = '/mnt/c/Users/14135/Desktop/Ray-Tune-Exp/data', transform = base_transforms)
+
+    # create model 
+    model = SimpleCNN(image_size = image_size, dropout_rate = dropout_rate).to(device)
+
+    # create loss
+    loss_fn = F.binary_cross_entropy
+    
+    # create optimizer 
+    optimizer = torch.optim.SGD(
+        model.parameters(), 
+        lr = lr,
+        momentum = momentum,
+        weight_decay = l2)
+
+    # iter through epochs 
+    for epoch in range(epochs):
+        train_loss = 0
+        train_correct = 0
+
+        # iter through training batches 
+        for images, labels in tqdm(train_loader):
+            # reset optimizer
+            optimizer.zero_grad()
+
+            # load images
+            images, labels = images.to(device), labels.to(device).float()
+
+            # apply training trainsforms 
+            #images = train_tranforms(images)
+
+            # run images through model and calculate loss 
+            outputs = model(images)
+            loss = loss_fn(outputs, labels)
+
+            # compute loss gradients and take a step
+            loss.backward()
+            optimizer.step()
+
+            train_loss += loss.item()
+
+            # sum where outputs are equal to correct labels
+            train_correct += (torch.round(outputs) == labels).float().mean().item()
+
+        # average accuracy and loss over each batch
+        train_accuracy = train_correct / len(train_loader)
+        train_loss /= len(train_loader)
+
+        val_loss = 0
+        val_correct = 0
+
+        # iter through val batches 
+        with torch.no_grad():
+            for images, labels in val_loader:
+                images, labels = images.to(device), labels.to(device).float()
+
+                # run images through model and calculate loss 
+                outputs = model(images)
+                loss = loss_fn(outputs, labels)
+
+                val_loss += loss.item()
+
+                val_correct += (torch.round(outputs) == labels).float().mean().item()
+
+        # avergae accuracy and loss over epoch
+        val_accuracy = val_correct / len(val_loader)
+        val_loss /= len(val_loader)
+
+        print(f"Epoch {epoch} / {epochs}, {train_accuracy =}, {train_loss =}, {val_accuracy =}, {val_loss =}")
 
 if __name__ == "__main__":
     hyp_search()
