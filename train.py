@@ -135,7 +135,7 @@ def train_ray(config: dict) -> None:
 
 def hyp_search():
     # define scheduler 
-    sched = AsyncHyperBandScheduler()
+    sched = AsyncHyperBandScheduler(metric = 'val_accuracy', mode = 'max')
 
     analysis = tune.run(
         train_ray,
@@ -147,7 +147,7 @@ def hyp_search():
             "epochs": 4
         },
         resources_per_trial={"cpu": 4, "gpu": 1 if torch.cuda.is_available() else 0},  # set this for GPUs
-        num_samples = 10,
+        num_samples = 20,
         config = dict(
             image_size = 227 // 4,
             lr = tune.loguniform(1e-4, 1e-1),
