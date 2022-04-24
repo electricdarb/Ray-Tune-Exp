@@ -72,7 +72,7 @@ def train(config: dict) -> None:
     ])
     # load in data in a thread safe manor
     with FileLock(os.path.expanduser("~/data.lock")):
-        train_loader, val_loader = create_dataloader(path = '/mnt/c/Users/14135/Desktop/Ray-Tune-Exp/data', transform = base_transforms)
+        train_loader, val_loader = create_dataloader(path = '~/data', transform = base_transforms)
 
     # create model 
     model = SimpleCNN(image_size = image_size, dropout_rate = dropout_rate)
