@@ -147,14 +147,14 @@ def hyp_search():
             "epochs": 4
         },
         resources_per_trial={"cpu": 4, "gpu": 1 if torch.cuda.is_available() else 0},  # set this for GPUs
-        num_samples = 5,
+        num_samples = 10,
         config = dict(
             image_size = 227 // 4,
-            lr = tune.loguniform(1e-5, 1e-1),
+            lr = tune.loguniform(1e-4, 1e-1),
             momentum = tune.uniform(0.1, 0.9),
             l2 = tune.loguniform(1e-5, 1e-2),
             dropout_rate = tune.uniform(.05, .35),
-            epochs = 100000 # set to high number so iterations is used to stop not this
+            epochs = 1000 # set to high number so iterations is used to stop not this
             )
     )
 
