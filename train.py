@@ -117,7 +117,7 @@ def train(config: dict) -> None:
             train_correct += (outputs == labels).float().mean()
 
         # average accuracy over each batch
-        train_accuracy = train_accuracy / len(train_loader)
+        train_accuracy = train_correct / len(train_loader).float()
 
         val_loss = 0
         val_correct = 0
@@ -138,8 +138,6 @@ def train(config: dict) -> None:
             # avergae accuracy 
             val_accuracy = val_correct / len(val_loader)
         
-        print(f'Epoch: {epoch + 1} / {epochs}:: {train_accuracy =}, {train_loss = }, {val_accuracy =}, {val_loss =}')
-
         tune.report(
             train_accuracy = train_accuracy,
             train_loss = train_loss,
