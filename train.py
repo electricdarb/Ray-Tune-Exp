@@ -72,7 +72,7 @@ def train(config: dict) -> None:
     ])
     # load in data in a thread safe manor
     with FileLock(os.path.expanduser("~/data.lock")):
-        train_loader, val_loader = create_dataloader(path = '~/data', transform = base_transforms)
+        train_loader, val_loader = create_dataloader(path = '/mnt/c/Users/14135/Desktop/Ray-Tune-Exp/data', transform = base_transforms)
 
     # create model 
     model = SimpleCNN(image_size = image_size, dropout_rate = dropout_rate)
@@ -114,7 +114,7 @@ def train(config: dict) -> None:
             train_loss += loss.item()
 
             # sum where outputs are equal to correct labels
-            train_correct += (outputs == labels).float().mean()
+            train_correct += (torch.round(outputs) == labels).float().mean().item()
 
         # average accuracy over each batch
         train_accuracy = train_correct / len(train_loader)
@@ -125,7 +125,7 @@ def train(config: dict) -> None:
         # iter through val batches 
         with torch.no_grad():
             for images, labels in val_loader:
-                images, labels = images.to(device), labels.to(device)
+                images, labels = images.to(device), labels.to(device).float()
 
                 # run images through model and calculate loss 
                 outputs = model(images)
@@ -133,7 +133,7 @@ def train(config: dict) -> None:
 
                 val_loss += loss.item()
 
-                val_correct += (outputs == labels).float().mean()
+                val_correct += (torch.round(outputs) == labels).float().mean().item()
 
             # avergae accuracy 
             val_accuracy = val_correct / len(val_loader)
@@ -142,7 +142,8 @@ def train(config: dict) -> None:
             train_accuracy = train_accuracy,
             train_loss = train_loss,
             val_accuracy = val_accuracy,
-            val_loss = val_loss
+            val_loss = val_loss,
+            epochs = epoch,
             )
 
 
@@ -157,7 +158,7 @@ def hyp_search():
         name = 'exp',
         scheduler=sched,
         stop={
-            "training_iterations": 6
+            "epochs": 6
         },
         resources_per_trial={"cpu": 4, "gpu": 1 if torch.cuda.is_available() else 0},  # set this for GPUs
         num_samples = 5,
