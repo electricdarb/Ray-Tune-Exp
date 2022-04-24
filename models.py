@@ -27,7 +27,7 @@ class SimpleCNN(nn.Module):
         # max pool is applied with kernel of 2 3 times, so 
         self.dense = nn.Linear(dense_dims, 512)
 
-        self.out = nn.Linear(1024, 1)
+        self.out = nn.Linear(512, 1)
 
     def forward(self, input: torch.tensor) -> torch.tensor:
         """forward pass through device"""
