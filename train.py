@@ -95,6 +95,10 @@ def train(config: dict) -> None:
         train_correct = 0
         # iter through training batches 
         for images, labels in train_loader:
+            # reset optimizer
+            optimizer.zero_grad()
+
+            # load images
             images, labels = images.to(device), labels.to(device).float()
 
             # apply training trainsforms 
@@ -103,9 +107,6 @@ def train(config: dict) -> None:
             # run images through model and calculate loss 
             outputs = model(images)
             loss = loss_fn(outputs, labels)
-
-            # reset optimizer
-            optimizer.zero_grad()
 
             # compute loss gradients and take a step
             loss.backward()
@@ -163,7 +164,7 @@ def hyp_search():
         resources_per_trial={"cpu": 4, "gpu": 1 if torch.cuda.is_available() else 0},  # set this for GPUs
         num_samples = 5,
         config = dict(
-            image_size = 227 // 2,
+            image_size = 227 // 8,
             lr = tune.loguniform(1e-4, 1.),
             momentum = tune.uniform(0.1, 0.9),
             l2 = tune.loguniform(1e-4, 1e-2),

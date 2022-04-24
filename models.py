@@ -48,6 +48,7 @@ class SimpleCNN(nn.Module):
 
         # flatten while preserving batch 
         x = torch.reshape(x, (x.shape[0], -1))
+        x = self.dropout(x)
 
         # pass through a dense layer, mapping a binary from 0 to 1
         x = self.dense(x)
